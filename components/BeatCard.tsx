@@ -1,8 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Play, Pause, Phone, MoreVertical, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import { EditBeatModal } from './EditBeatModal';
 
 interface Beat {
   id: number;
@@ -23,151 +21,40 @@ interface BeatCardProps {
 }
 
 export const BeatCard: React.FC<BeatCardProps> = ({ beat, onDelete }) => {
-  const cardStyle = "bg-white shadow-lg rounded-2xl p-4 md:p-6 text-gray-900 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 transition-all duration-300 hover:shadow-xl";
-  const coverArtStyle = "w-full md:w-32 h-32 object-cover rounded-xl";
-  const infoStyle = "flex-1 text-center md:text-left space-y-1";
-  const labelStyle = "text-sm text-gray-500";
-  const valueStyle = "text-base font-semibold";
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [showCallPopup, setShowCallPopup] = useState(false);
-  const [selectedBeat, setSelectedBeat] = useState<Beat | null>(null);
+  const cardStyle =
+    "bg-white shadow-lg rounded-2xl p-4 md:p-6 text-gray-900 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 transition-all duration-300 hover:shadow-xl";
 
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (audioRef.current.paused) {
-        audioRef.current.play();
-        setIsPlaying(true);
-      } else {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
-    }
-  };
-
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this beat?");
-    if (!confirmDelete) return;
-
-    const { error } = await supabase.from('beats').delete().eq('id', beat.id);
-    if (error) {
-      alert('Failed to delete beat: ' + error.message);
-    } else {
-      alert('Beat deleted!');
-      if (onDelete) onDelete();
-    }
-  };
-
-  const storedPhone = localStorage.getItem('userPhone');
+  const storedPhone = typeof window !== 'undefined' ? localStorage.getItem('userPhone') : null;
   const isOwner = beat.phone === storedPhone;
 
   return (
     <div className={cardStyle}>
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden relative hover:shadow-2xl transition-all duration-200 w-60 flex-shrink-0 sm:w-full">
-      {/* Cover Art */}
-      <div className="aspect-square w-full bg-blue-100 relative">
-        <img src={beat.coverArt} alt={beat.name} className="w-full h-full object-cover rounded-t-xl" />
-        <span className="absolute top-2 right-2 bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow">
-          NPR {beat.price}
-        </span>
-      </div>
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden relative hover:shadow-2xl transition-all duration-200 w-60 flex-shrink-0 sm:w-full">
+        <div className="aspect-square w-full bg-blue-100 relative">
+          <img
+            src={beat.coverArt || "/images/default-art.png"}
+            alt="Beat Cover"
+            className="w-full h-full object-cover rounded-t-lg"
+          />
+        </div>
 
-      <div className="p-4 flex flex-col justify-between h-48">
-        <div className="flex justify-between items-start mb-2">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-blue-900 leading-snug">{beat.name}</h3>
-            <p className="text-sm text-gray-600 font-medium">{beat.uploader}</p>
-            <p className="text-sm text-blue-700 tracking-wide">{beat.key} • {beat.bpm} BPM</p>
-          </div>
+        <div className="p-4 flex flex-col space-y-1">
+          <h2 className="text-lg font-semibold truncate">{beat.name}</h2>
+          <p className="text-sm text-gray-600 truncate">Key: {beat.key}</p>
+          <p className="text-sm text-gray-500 truncate">BPM: {beat.bpm}</p>
+        </div>
 
-          {isOwner && (
-            <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="text-blue-500 hover:text-blue-700">
-                <MoreVertical size={20} />
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 bg-white shadow-md rounded z-10 w-28">
-                  <button
-                    className="block w-full text-left px-3 py-2 hover:bg-blue-100 text-sm"
-                    onClick={() => {
-                      setSelectedBeat(beat);
-                      setIsEditOpen(true);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="block w-full text-left px-3 py-2 hover:bg-red-100 text-sm text-red-600"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleDelete();
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
+        <div className="px-4 pb-4 flex justify-between items-center">
+          <span className="text-blue-700 font-bold text-lg">${beat.price}</span>
+          {isOwner ? (
+            <span className="text-green-600 text-sm">Your Beat</span>
+          ) : (
+            <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+              Buy Now
+            </button>
           )}
         </div>
-
-        <div className="flex items-center justify-between mt-4 pt-2 border-t">
-          <button
-            onClick={togglePlay}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow"
-          >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            <span>{isPlaying ? 'Pause' : 'Play'}</span>
-          </button>
-          <button
-            onClick={() => setShowCallPopup(true)}
-            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow"
-          >
-            <Phone size={18} />
-            <span>Buy</span>
-          </button>
-        </div>
       </div>
-
-      <audio
-        ref={audioRef}
-        src={beat.audioUrl}
-        onEnded={() => setIsPlaying(false)}
-        hidden
-      />
-
-      {/* Call Popup */}
-      {showCallPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg text-center relative w-72">
-            <button
-              className="absolute top-2 right-2 text-white hover:text-gray-200"
-              onClick={() => setShowCallPopup(false)}
-            >
-              <X size={20} />
-            </button>
-            <p className="text-lg font-semibold">📞 Call the producer:</p>
-            <a
-              href={`tel:${beat.producerPhone}`}
-              className="block mt-4 text-xl font-bold underline"
-            >
-              {beat.producerPhone}
-            </a>
-          </div>
-        </div>
-      )}
-
-      {isEditOpen && selectedBeat && (
-        <EditBeatModal
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          beat={selectedBeat}
-          onUpdate={onDelete}
-        />
-      )}
     </div>
   );
 };
